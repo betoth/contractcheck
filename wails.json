@@ -1,0 +1,12 @@
+{
+  "name": "ContractCheck",
+  "outputfilename": "contractcheck-desktop",
+  "frontend": {
+    "dir": "frontend",
+    "install": "npm install",
+    "build": "npm run build",
+    "dev": "npm run dev"
+  },
+  "devServer": "localhost:5173",
+  "loglevel": "debug"
+}
