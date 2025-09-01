@@ -3,11 +3,14 @@ description: Report a bug or unexpected behavior
 title: "[Bug]: "
 labels: ["bug"]
 body:
-  - type: markdown
+  - type: textarea
+    id: description
     attributes:
-      value: |
-        ## Description
-        A clear and concise description of what the bug is.
+      label: Description
+      description: A clear and concise description of what the bug is.
+      placeholder: "What happened? Where did it happen? Any error messages?"
+    validations:
+      required: true
 
   - type: textarea
     id: steps
@@ -19,22 +22,26 @@ body:
         2. Click on ...
         3. See error
       render: markdown
+    validations:
+      required: true
 
   - type: textarea
     id: expected
     attributes:
       label: Expected behavior
       description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened?
+      placeholder: "What you observed instead of the expected behavior."
 
   - type: textarea
     id: screenshots
     attributes:
-      label: Screenshots
-      description: If applicable, add screenshots to help explain.
-
-  - type: input
-    id: environment
-    attributes:
-      label: Environment
-      description: Provide environment info (OS, Go version, etc.)
-      placeholder: "e.g., Windows 11, Go 1.22"
+      label: Screenshots / Logs (optional)
+      description: If applicable, add screenshots or relevant logs to help explain.
