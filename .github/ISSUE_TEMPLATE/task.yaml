@@ -1,0 +1,31 @@
+name: Task
+description: Use this template for project tasks
+title: "[Task]: "
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Goal
+        Describe the goal of this task.
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: Tasks
+      description: Checklist items for this task
+      placeholder: "- [ ] Item 1"
+      render: markdown
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: Define what must be true to consider this task done
+      render: markdown
+
+  - type: textarea
+    id: outofscope
+    attributes:
+      label: Out of scope
+      description: Define what is NOT part of this task
