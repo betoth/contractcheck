@@ -3,11 +3,14 @@ description: Use this template for project tasks
 title: "[Task]: "
 labels: ["task"]
 body:
-  - type: markdown
+  - type: textarea
+    id: goal
     attributes:
-      value: |
-        ## Goal
-        Describe the goal of this task.
+      label: Goal
+      description: Describe the goal of this task.
+      placeholder: "Explain the outcome this task should achieve."
+    validations:
+      required: true
 
   - type: textarea
     id: tasks
@@ -16,16 +19,22 @@ body:
       description: Checklist items for this task
       placeholder: "- [ ] Item 1"
       render: markdown
+    validations:
+      required: true
 
   - type: textarea
     id: acceptance
     attributes:
       label: Acceptance Criteria
       description: Define what must be true to consider this task done
+      placeholder: "- [ ] Criterion 1"
       render: markdown
+    validations:
+      required: true
 
   - type: textarea
     id: outofscope
     attributes:
       label: Out of scope
       description: Define what is NOT part of this task
+      placeholder: "What is explicitly excluded from this task?"
