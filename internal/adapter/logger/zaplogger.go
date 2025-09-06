@@ -5,26 +5,25 @@ import (
 	"go.uber.org/zap"
 )
 
-// ZapLogger adapts zap.SugaredLogger to the output.Logger port.
 type ZapLogger struct {
 	*zap.SugaredLogger
 }
 
-// New returns an output.Logger. Falling back to zap.NewNop() on error keeps boot safe.
 func New() output.Logger {
-	l, err := zap.NewProduction()
+	cfg := zap.NewProductionConfig()
+	cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	cfg.Encoding = "console"
+
+	l, err := cfg.Build()
 	if err != nil {
 		return &ZapLogger{zap.NewNop().Sugar()}
 	}
 	return &ZapLogger{l.Sugar()}
 }
 
-// With returns a derived logger with extra structured fields.
 func (l *ZapLogger) With(kv ...any) output.Logger {
 	return &ZapLogger{l.SugaredLogger.With(kv...)}
 }
-
-// Named returns a derived logger with a sub-scope name.
 func (l *ZapLogger) Named(name string) output.Logger {
 	return &ZapLogger{l.SugaredLogger.Named(name)}
 }

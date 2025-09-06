@@ -34,7 +34,7 @@ help:
 	@echo "  cover          - go test w/ coverage summary"
 	@echo "  desktop-dev    - run Wails dev (desktop app)"
 	@echo "  desktop-build  - build Wails app (generates bindings + bundles frontend)"
-	@echo "  desktop-clean  - remove Wails build artifacts"
+	@echo "  desktop-clean  - remove only Wails build/bin artifacts"
 	@echo "  print-version  - show VERSION and COMMIT"
 
 tidy:
@@ -70,8 +70,9 @@ desktop-dev:
 desktop-build:
 	wails build
 
+# Clean only the bin folder inside build (preserve icons and manifests)
 desktop-clean:
-	@$(call RM_DIR,build)
+	@$(call RM_DIR,build/bin)
 
 print-version:
 	@echo VERSION=$(VERSION)

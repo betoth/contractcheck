@@ -58,8 +58,8 @@ func TestUIOptions_BootLifecycle_LogsAndBinds(t *testing.T) {
 	if opts.AssetServer == nil || opts.AssetServer.Assets == nil {
 		t.Fatal("expected AssetServer with non-nil Assets")
 	}
-	if len(opts.Bind) != 1 {
-		t.Fatalf("expected exactly 1 bound object, got %d", len(opts.Bind))
+	if len(opts.Bind) != 2 {
+		t.Fatalf("expected exactly 2 bound object, got %d", len(opts.Bind))
 	}
 	// Ensure the bound object is of type *wailsapp.App
 	if _, ok := opts.Bind[0].(*wailsapp.App); !ok {

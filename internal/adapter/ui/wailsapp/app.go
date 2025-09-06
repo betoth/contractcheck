@@ -10,13 +10,15 @@ import (
 )
 
 // App is the UI adapter bound to the Wails runtime.
-// Keep domain logic out of here; call use cases via ports instead.
+// It exposes minimal methods (e.g. Version) to the frontend.
+// Keep domain/business logic outside of this layer.
 type App struct {
 	ctx context.Context
 	log output.Logger
 }
 
-// New constructs the UI adapter. If your logger supports Named(), tag logs with "ui".
+// New constructs the UI adapter.
+// Logger is scoped with "ui" for filtering in zap logs.
 func New(log output.Logger) *App {
 	if log != nil {
 		log = log.Named("ui")
@@ -24,7 +26,7 @@ func New(log output.Logger) *App {
 	return &App{log: log}
 }
 
-// Startup is called when the Wails runtime is ready to start the app.
+// Startup is called when the Wails runtime is ready.
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
 	if a.log != nil {
@@ -39,7 +41,7 @@ func (a *App) DomReady(ctx context.Context) {
 	}
 }
 
-// Shutdown is called when the application is about to quit.
+// Shutdown is called when the application is quitting.
 func (a *App) Shutdown(ctx context.Context) {
 	if a.log != nil {
 		a.log.Info("UI shutdown")
@@ -47,14 +49,20 @@ func (a *App) Shutdown(ctx context.Context) {
 	}
 }
 
-// UIOptions builds the Wails options using the provided embedded asset FS.
-// The embed stays in main to keep paths stable.
+// Version exposes the app version to the frontend.
+func (a *App) Version() string {
+	// TODO: inject real version (ex: build flag, pkg/version)
+	return "0.1.0"
+}
+
+// UIOptions builds the Wails app options, binding all frontend-facing APIs.
+// This is the single entrypoint consumed by main.go.
 func UIOptions(assets fs.FS, log output.Logger) *options.App {
 	app := New(log)
+
 	return &options.App{
-		Title:  "ContractCheck",
-		Width:  1200,
-		Height: 800,
+		Title:            "ContractCheck",
+		WindowStartState: options.Maximised,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -62,7 +70,8 @@ func UIOptions(assets fs.FS, log output.Logger) *options.App {
 		OnDomReady: app.DomReady,
 		OnShutdown: app.Shutdown,
 		Bind: []interface{}{
-			app, // exported methods become available to the frontend
+			app,                  // Provides Version()
+			NewLoggerBridge(log), // Provides frontend logging bridge
 		},
 	}
 }
