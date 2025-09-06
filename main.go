@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"io/fs"
 	"log"
 
 	applog "github.com/betoth/contractcheck/internal/adapter/logger"
@@ -13,10 +14,18 @@ import (
 var assets embed.FS
 
 func main() {
+	// Initialize backend logger (zap)
 	l := applog.New()
 	defer l.Sync()
 
-	if err := wails.Run(wailsapp.UIOptions(assets, l)); err != nil {
+	// Ensure embedded assets point to "frontend/dist"
+	dist, err := fs.Sub(assets, "frontend/dist")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Run Wails with centralized options
+	if err := wails.Run(wailsapp.UIOptions(dist, l)); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -1,12 +1,18 @@
 {
   "name": "ContractCheck",
-  "outputfilename": "contractcheck-desktop",
-  "frontend": {
-    "dir": "frontend",
-    "install": "npm install",
-    "build": "npm run build",
-    "dev": "npm run dev"
-  },
-  "devServer": "localhost:5173",
-  "loglevel": "debug"
+  "version": "0.1.0",
+  "assetserver": { "port": 0 },
+
+  "frontend:dir": "frontend",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "http://localhost:5173",
+
+  "devServer": "localhost:34115",
+
+  "windows": {
+    "webview2": { "disallowInstallPrompt": false }
+  }
 }
