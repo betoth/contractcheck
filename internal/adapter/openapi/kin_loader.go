@@ -74,92 +74,112 @@ func (kin *KinLoader) Load(ctx context.Context, filePath string) (openapi.OpenAP
 // validateDoc centralizes structural validation and version checks.
 func (kin *KinLoader) validateDoc(ctx context.Context, doc *openapi3.T, filePath string) error {
 	if err := doc.Validate(ctx); err != nil {
+		// Let normalizeError map this; keep raw error as cause.
 		return err
 	}
 
 	if !openapi.OpenAPIVersion(doc.OpenAPI).IsValid() {
-		return &customerrors.AppError{
-			Type:    customerrors.VALIDATION_ERROR,
-			Message: "Invalid OpenAPI version format",
-			Cause:   fmt.Sprintf("got %q, expected format X.Y[.Z]", doc.OpenAPI),
-			Details: map[string]interface{}{
-				"file": filePath,
-				"kind": openapi.INVALID_VERSION_FORMAT,
-			},
+		cause := fmt.Errorf("got %q, expected format X.Y[.Z]", doc.OpenAPI)
+
+		// Prefer the port helper to keep taxonomy centralized.
+		err := openapi.NewValidationError(
+			openapi.INVALID_VERSION_FORMAT,
+			"Invalid OpenAPI version format",
+			filePath,
+			cause,
+		)
+
+		// Enrich with the declared version for easier troubleshooting.
+		var ae *customerrors.AppError
+		if errors.As(err, &ae) {
+			if ae.Details == nil {
+				ae.Details = make(map[string]any)
+			}
+			ae.Details[customerrors.DetailVersion] = doc.OpenAPI
 		}
+		return err
 	}
 
 	return nil
 }
 
-// normalizeError maps heterogeneous errors (os, YAML/JSON parsing, kin-openapi)
+// normalizeError maps heterogeneous errors (context, os, YAML/JSON parsing, kin-openapi)
 // into our stable AppError shape with a machine-friendly "kind".
 //
 // This function MUST remain deterministic: callers rely on "kind" for UX messages,
 // branching logic and telemetry dashboards.
 func (kin *KinLoader) normalizeError(filePath string, err error) error {
+	// Pass through context cancellation/timeouts unchanged — they are control-flow signals.
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+
+	// If it's already our AppError, just enrich file (if missing) and bubble up.
 	var ae *customerrors.AppError
 	if errors.As(err, &ae) {
 		if ae.Details == nil {
-			ae.Details = make(map[string]interface{})
+			ae.Details = make(map[string]any)
 		}
-		ae.Details["file"] = filePath
+		if _, ok := ae.Details[customerrors.DetailFile]; !ok {
+			ae.Details[customerrors.DetailFile] = filePath
+		}
 		return ae
 	}
 
-	msg := err.Error()
-
 	switch {
 	case errors.Is(err, os.ErrNotExist):
-		return &customerrors.AppError{
-			Type:    customerrors.VALIDATION_ERROR,
-			Message: "File not found",
-			Cause:   msg,
-			Details: map[string]interface{}{
-				"file": filePath,
-				"kind": openapi.FILE_NOT_FOUND,
+		return customerrors.NewValidationError(
+			"File not found",
+			err,
+			map[string]any{
+				customerrors.DetailFile: filePath,
+				customerrors.DetailKind: openapi.FILE_NOT_FOUND,
 			},
-		}
+		)
+
 	case errors.Is(err, os.ErrPermission):
-		return &customerrors.AppError{
-			Type:    customerrors.VALIDATION_ERROR,
-			Message: "Permission denied",
-			Cause:   msg,
-			Details: map[string]interface{}{
-				"file": filePath,
-				"kind": openapi.PERMISSION_DENIED,
+		return customerrors.NewValidationError(
+			"Permission denied",
+			err,
+			map[string]any{
+				customerrors.DetailFile: filePath,
+				customerrors.DetailKind: openapi.PERMISSION_DENIED,
 			},
-		}
-	case strings.Contains(msg, "yaml:") || strings.Contains(msg, "json:"):
-		return &customerrors.AppError{
-			Type:    customerrors.VALIDATION_ERROR,
-			Message: "Invalid YAML/JSON syntax",
-			Cause:   msg,
-			Details: map[string]interface{}{
-				"file": filePath,
-				"kind": openapi.INVALID_SYNTAX,
-			},
-		}
-	case strings.Contains(msg, "external reference"):
-		return &customerrors.AppError{
-			Type:    customerrors.VALIDATION_ERROR,
-			Message: "External references are not allowed",
-			Cause:   msg,
-			Details: map[string]interface{}{
-				"file": filePath,
-				"kind": openapi.EXTERNAL_REF_NOT_ALLOWED,
-			},
-		}
+		)
+
 	default:
-		return &customerrors.AppError{
-			Type:    customerrors.VALIDATION_ERROR,
-			Message: "Invalid OpenAPI specification",
-			Cause:   msg,
-			Details: map[string]interface{}{
-				"file": filePath,
-				"kind": openapi.INVALID_SPEC,
-			},
+		// Heuristics for YAML/JSON parse errors (based on typical vendor messages).
+		msg := err.Error()
+		if strings.Contains(msg, "yaml:") || strings.Contains(msg, "json:") {
+			return customerrors.NewValidationError(
+				"Invalid YAML/JSON syntax",
+				err,
+				map[string]any{
+					customerrors.DetailFile: filePath,
+					customerrors.DetailKind: openapi.INVALID_SYNTAX,
+				},
+			)
 		}
+		if strings.Contains(msg, "external reference") {
+			return customerrors.NewValidationError(
+				"External references are not allowed",
+				err,
+				map[string]any{
+					customerrors.DetailFile: filePath,
+					customerrors.DetailKind: openapi.EXTERNAL_REF_NOT_ALLOWED,
+				},
+			)
+		}
+
+		// Catch-all for any other validation/parse/semantic problem.
+		return customerrors.NewValidationError(
+			"Invalid OpenAPI specification",
+			err,
+			map[string]any{
+				customerrors.DetailFile: filePath,
+				customerrors.DetailKind: openapi.INVALID_SPEC,
+			},
+		)
 	}
 }
 
